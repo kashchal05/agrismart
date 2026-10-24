@@ -13,15 +13,15 @@ and 16-week roadmap.
 
 ## Status
 
-**Phase 0 — de-risking.** Proving the single hardest technical risk before investing in
-infrastructure: can we pull free Sentinel-2 satellite imagery for an arbitrary field and compute a
-useful crop-health (NDVI) time series?
+**Phase 1 — rebuilt core.** Module A (field management) is built and running locally: sign up, draw
+fields on a map, and they persist per-user with computed area, centroid, and county.
 
 | Phase | What | State |
 |---|---|---|
-| **De-risk** | Satellite NDVI notebook over a Texas field (Earth Search STAC) | **In progress** |
+| **De-risk** | Satellite NDVI notebook over a Texas field (Earth Search STAC) | **Done** |
+| 1 · Module A | Auth + draw/store fields + area/centroid/county (multi-tenant) | **Done** |
+| 1 · Module B | Crop recommendation v1 (USDA CDL + soil + climate, XGBoost, spatial holdout) | Next |
 | 0 | AWS hygiene, budget alarms, Terraform skeleton, CI | Not started |
-| 1 | Field management (auth, draw fields, PostGIS) + crop recommendation v1 | Not started |
 | 2 | Satellite health pipeline + backfill | Not started |
 | 3 | Crop-type classifier + yield forecaster | Not started |
 | 4 | Event-driven alerts | Not started |
@@ -40,6 +40,43 @@ notebooks/   exploration / de-risking work
 docs/        architecture, model cards, DATA_SOURCES.md
 tests/       unit, integration, e2e
 ```
+
+## Running the app locally (Phase 1 · Module A)
+
+A FastAPI backend ([`apps/api`](apps/api)) and a React + MapLibre frontend ([`apps/web`](apps/web)).
+Field boundaries are stored as GeoJSON in Postgres; see
+[`docs/adr/0001-geometry-storage.md`](docs/adr/0001-geometry-storage.md) for why JSONB now and the
+PostGIS upgrade path for deploy.
+
+**Prerequisites:** Python 3.11, Node 18+, and a local Postgres running on `:5432`.
+
+```bash
+# 1. Create the dev + test databases on your local Postgres
+./infra/local/db.sh create
+
+# 2. API (http://localhost:8000)
+cd apps/api
+python3.11 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload            # auto-creates tables on first run
+
+# 3. Web (http://localhost:5174) — in a second terminal
+cd apps/web
+npm install
+npm run dev
+```
+
+Open http://localhost:5174, create an account, click **Draw field**, trace a boundary, and **Finish**.
+The field is saved with its area, centroid, and county, and appears on the map.
+
+**Tests** (needs the `agrismart_test` DB from step 1):
+
+```bash
+cd apps/api && source .venv/bin/activate && pytest
+```
+
+The suite covers auth, field CRUD, geometry/area, and **multi-tenant isolation** (one user can never
+see or modify another user's fields).
 
 ## The de-risk notebook
 

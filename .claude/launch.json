@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "agrismart-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "apps/web"],
+      "port": 5174
+    },
+    {
+      "name": "agrismart-api",
+      "runtimeExecutable": "apps/api/.venv/bin/uvicorn",
+      "runtimeArgs": ["app.main:app", "--app-dir", "apps/api", "--port", "8000", "--reload"],
+      "port": 8000
+    }
+  ]
+}
