@@ -1,0 +1,25 @@
+# Dependencies for the Phase-0 de-risk notebook (notebooks/01_field_ndvi_timeseries.ipynb).
+# Pinned to known-good releases for Python 3.11 on macOS arm64.
+
+# STAC search + loading
+pystac-client==0.8.3
+odc-stac==0.3.10
+# odc-stac imports dask.base.quote, which newer dask removed; pin to a version that still has it.
+dask==2024.8.0
+
+# Raster / array
+rioxarray==0.17.0
+rasterio==1.3.11
+xarray==2024.9.0
+numpy==1.26.4
+pandas==2.2.3
+
+# Geometry
+geopandas==1.0.1
+shapely==2.0.6
+
+# Plotting + notebook
+matplotlib==3.9.2
+contextily==1.6.2
+jupyterlab==4.2.5
+ipykernel==6.29.5
