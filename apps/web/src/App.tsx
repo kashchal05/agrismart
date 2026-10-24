@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
-import type { Field } from "./api";
+import type { CropRec, Field } from "./api";
 import { api, getToken, setToken } from "./api";
 import { Auth } from "./Auth";
 
@@ -18,6 +18,34 @@ function fieldsToGeoJSON(fields: Field[]): GeoJSON.FeatureCollection {
   };
 }
 
+function renderRecs(state: "loading" | { error: string } | CropRec[] | undefined) {
+  if (!state || state === "loading") return null;
+  if ("error" in state) return <div className="rec-error">{state.error}</div>;
+  return (
+    <div className="recs">
+      {state.map((r, i) => {
+        const pct = Math.round(r.suitability * 100);
+        const top = r.why[0];
+        return (
+          <div key={r.crop} className="rec-row">
+            <div className="rec-head">
+              <span className="rec-rank">{i + 1}</span>
+              <span className="rec-crop">{r.crop}</span>
+              <span className="rec-pct">{pct}%</span>
+            </div>
+            <div className="rec-bar"><div className="rec-fill" style={{ width: `${pct}%` }} /></div>
+            {top && (
+              <div className="rec-why">
+                {top.direction === "favors" ? "✓" : "⚠"} {top.factor} {top.direction} this crop
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function App() {
   const [authed, setAuthed] = useState(!!getToken());
   if (!authed) return <Auth onAuthed={() => setAuthed(true)} />;
@@ -31,6 +59,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [email, setEmail] = useState<string>("");
   const [drawing, setDrawing] = useState(false);
   const [vertexCount, setVertexCount] = useState(0);
+  // field_id -> "loading" | error string | crop recommendations
+  const [recs, setRecs] = useState<Record<string, "loading" | { error: string } | CropRec[]>>({});
 
   // Drawing state lives in refs so the map click handler never sees stale values.
   const drawingRef = useRef(false);
@@ -144,6 +174,17 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     await refreshFields();
   }
 
+  async function getRecs(f: Field, e: React.MouseEvent) {
+    e.stopPropagation();
+    setRecs((r) => ({ ...r, [f.id]: "loading" }));
+    try {
+      const res = await api.recommend(f.id);
+      setRecs((r) => ({ ...r, [f.id]: res.recommendations }));
+    } catch (err) {
+      setRecs((r) => ({ ...r, [f.id]: { error: err instanceof Error ? err.message : "failed" } }));
+    }
+  }
+
   return (
     <div className="app">
       <div className="topbar">
@@ -172,6 +213,11 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
                     {f.county ? ` · ${f.county} County, ${f.state}` : ""}<br />
                     {f.centroid_lat.toFixed(4)}, {f.centroid_lon.toFixed(4)}
                   </div>
+                  <button className="rec-btn" onClick={(e) => getRecs(f, e)}
+                    disabled={recs[f.id] === "loading"}>
+                    {recs[f.id] === "loading" ? "Analyzing soil & climate…" : "🌱 Recommend crops"}
+                  </button>
+                  {renderRecs(recs[f.id])}
                 </li>
               ))}
             </ul>

@@ -31,6 +31,25 @@ export interface Field {
   created_at: string;
 }
 
+export interface CropReason {
+  factor: string;
+  direction: "favors" | "limits";
+  weight: number;
+}
+
+export interface CropRec {
+  crop: string;
+  suitability: number;
+  why: CropReason[];
+}
+
+export interface Recommendation {
+  field_id: string;
+  field_name: string;
+  recommendations: CropRec[];
+  trained: string | null;
+}
+
 // FastAPI returns `detail` as a string (HTTPException) or a list of error objects
 // (422 validation). Turn either into a readable message.
 function parseError(body: unknown): string | null {
@@ -78,4 +97,5 @@ export const api = {
   createField: (name: string, geometry: GeoJSON.Polygon) =>
     request<Field>("/fields", { method: "POST", body: JSON.stringify({ name, geometry }) }),
   deleteField: (id: string) => request<void>(`/fields/${id}`, { method: "DELETE" }),
+  recommend: (id: string) => request<Recommendation>(`/fields/${id}/recommend`),
 };

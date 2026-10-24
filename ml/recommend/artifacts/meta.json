@@ -1,0 +1,77 @@
+{
+  "feature_order": [
+    "clay_0_5",
+    "clay_5_15",
+    "clay_15_30",
+    "sand_0_5",
+    "sand_5_15",
+    "sand_15_30",
+    "silt_0_5",
+    "silt_5_15",
+    "silt_15_30",
+    "phh2o_0_5",
+    "phh2o_5_15",
+    "phh2o_15_30",
+    "soc_0_5",
+    "soc_5_15",
+    "soc_15_30",
+    "cec_0_5",
+    "cec_5_15",
+    "cec_15_30",
+    "bdod_0_5",
+    "bdod_5_15",
+    "bdod_15_30",
+    "nitrogen_0_5",
+    "nitrogen_5_15",
+    "nitrogen_15_30",
+    "precip_annual_mm",
+    "precip_apr_sep_mm",
+    "t2m_annual_c",
+    "t_summer_max_c",
+    "t_winter_min_c",
+    "gdd_base10",
+    "frost_free_months"
+  ],
+  "classes": [
+    "Corn",
+    "Cotton",
+    "Other Hay/Non Alfalfa",
+    "Sorghum",
+    "Winter Wheat"
+  ],
+  "trained": "2026-10-24",
+  "metrics": {
+    "trained": "2026-10-24",
+    "samples": 1115,
+    "n_crops": 5,
+    "n_cells": 118,
+    "spatial_holdout": {
+      "top1": 0.4134,
+      "top3": 0.8799,
+      "macro_f1": 0.3771
+    },
+    "baseline_most_frequent_top1": 0.1272,
+    "lift_top1_over_baseline": 0.2862,
+    "spatial_cv": {
+      "top1_mean": 0.4798,
+      "top1_std": 0.0194,
+      "top3_mean": 0.9121,
+      "top3_std": 0.0223,
+      "folds": 5
+    },
+    "classes": [
+      "Corn",
+      "Cotton",
+      "Other Hay/Non Alfalfa",
+      "Sorghum",
+      "Winter Wheat"
+    ],
+    "class_support": {
+      "Cotton": 286,
+      "Winter Wheat": 259,
+      "Sorghum": 229,
+      "Corn": 204,
+      "Other Hay/Non Alfalfa": 137
+    }
+  }
+}

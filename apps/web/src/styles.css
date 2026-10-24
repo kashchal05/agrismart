@@ -45,6 +45,21 @@ body {
 .field-item .del { float: right; color: #b00020; font-size: 12px; }
 .empty { padding: 24px 16px; color: var(--muted); font-size: 13px; text-align: center; }
 
+.rec-btn { margin-top: 10px; width: 100%; background: #eef5ee; color: var(--green-dark);
+  border: 1px solid #cfe3cf; font-size: 12px; padding: 6px; }
+.rec-btn:hover:not(:disabled) { background: #e2efe2; }
+.rec-error { margin-top: 8px; color: #b00020; font-size: 12px; }
+.recs { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.rec-row { font-size: 12px; }
+.rec-head { display: flex; align-items: center; gap: 6px; }
+.rec-rank { background: var(--green); color: #fff; border-radius: 50%; width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center; font-size: 10px; flex: none; }
+.rec-crop { font-weight: 600; flex: 1; }
+.rec-pct { color: var(--green-dark); font-weight: 600; }
+.rec-bar { height: 5px; background: #e8e8e4; border-radius: 3px; margin: 3px 0; overflow: hidden; }
+.rec-fill { height: 100%; background: var(--green); border-radius: 3px; }
+.rec-why { color: var(--muted); font-size: 11px; }
+
 .map-wrap { flex: 1; position: relative; }
 #map { position: absolute; inset: 0; }
 

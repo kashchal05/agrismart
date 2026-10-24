@@ -20,7 +20,7 @@ fields on a map, and they persist per-user with computed area, centroid, and cou
 |---|---|---|
 | **De-risk** | Satellite NDVI notebook over a Texas field (Earth Search STAC) | **Done** |
 | 1 · Module A | Auth + draw/store fields + area/centroid/county (multi-tenant) | **Done** |
-| 1 · Module B | Crop recommendation v1 (USDA CDL + soil + climate, XGBoost, spatial holdout) | Next |
+| 1 · Module B | Crop recommendation v1 (USDA CDL + soil + climate, XGBoost, spatial holdout) | **Done** |
 | 0 | AWS hygiene, budget alarms, Terraform skeleton, CI | Not started |
 | 2 | Satellite health pipeline + backfill | Not started |
 | 3 | Crop-type classifier + yield forecaster | Not started |
@@ -77,6 +77,40 @@ cd apps/api && source .venv/bin/activate && pytest
 
 The suite covers auth, field CRUD, geometry/area, and **multi-tenant isolation** (one user can never
 see or modify another user's fields).
+
+## Crop recommendation (Phase 1 · Module B)
+
+The rebuilt original model, in [`ml/recommend/`](ml/recommend/). "Draw a field → get ranked crop
+suggestions" from that location's soil and long-term climate.
+
+- **Labels:** USDA Cropland Data Layer (the crop actually grown at each sampled point).
+- **Features:** SoilGrids (texture, pH, organic carbon, CEC, bulk density, nitrogen at 3 depths) +
+  NASA POWER climate normals (rainfall, temperature, growing degree days, frost-free months).
+- **Model:** XGBoost multiclass over Texas's major crops, with per-crop SHAP explanations served to
+  the UI ("topsoil clay favors this crop").
+- **Evaluation — spatial holdout** (test cells geographically disjoint from training, so the model
+  isn't graded on places it memorized):
+
+  | Metric | Model | Baseline (most-frequent) |
+  |---|---|---|
+  | Top-1 accuracy | **0.41** | 0.13 |
+  | Top-3 accuracy | **0.88** | — |
+  | Spatial 5-fold CV top-1 | **0.48 ± 0.02** | — |
+
+  Full honest write-up (caveats, class support, feature importance) in the
+  [model card](docs/model-cards/crop-recommendation.md).
+
+### Reproduce
+
+```bash
+cd <repo>
+python3.11 -m venv ml/.venv && ml/.venv/bin/pip install -r ml/requirements.txt
+ml/.venv/bin/python -m ml.recommend.build_dataset --target 1500   # gathers data from live APIs
+ml/.venv/bin/python -m ml.recommend.train                         # writes model + card
+```
+
+The trained model is served at `GET /fields/{id}/recommend` and via the **🌱 Recommend crops**
+button in the web app.
 
 ## The de-risk notebook
 
