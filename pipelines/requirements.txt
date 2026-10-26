@@ -1,0 +1,5 @@
+# Satellite ingestion worker. Shares the geospatial stack with the root notebook env
+# (requirements-notebook.txt: pystac-client, odc-stac, rioxarray, rasterio, geopandas, ...)
+# plus a DB driver to write observations.
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.9

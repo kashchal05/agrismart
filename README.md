@@ -21,8 +21,8 @@ fields on a map, and they persist per-user with computed area, centroid, and cou
 | **De-risk** | Satellite NDVI notebook over a Texas field (Earth Search STAC) | **Done** |
 | 1 · Module A | Auth + draw/store fields + area/centroid/county (multi-tenant) | **Done** |
 | 1 · Module B | Crop recommendation v1 (USDA CDL + soil + climate, XGBoost, spatial holdout) | **Done** |
+| 2 · Module C | Satellite health pipeline (Sentinel-2 NDVI) + per-field history + UI chart | **Done (local)** |
 | 0 | AWS hygiene, budget alarms, Terraform skeleton, CI | Not started |
-| 2 | Satellite health pipeline + backfill | Not started |
 | 3 | Crop-type classifier + yield forecaster | Not started |
 | 4 | Event-driven alerts | Not started |
 | 5 | Disease CV + AI advisor (RAG + agent) | Not started |
@@ -111,6 +111,33 @@ ml/.venv/bin/python -m ml.recommend.train                         # writes model
 
 The trained model is served at `GET /fields/{id}/recommend` and via the **🌱 Recommend crops**
 button in the web app.
+
+## Satellite health monitoring (Phase 2 · Module C)
+
+The de-risk notebook, turned into a real pipeline in [`pipelines/ingest/`](pipelines/ingest/).
+
+- **Per-field processing** ([`process.py`](pipelines/ingest/process.py)): STAC search → windowed
+  Sentinel-2 COG reads (field pixels only) → SCL cloud/shadow masking → NDVI / EVI / NDWI →
+  per-scene field statistics (mean, p10, p90, clear fraction).
+- **Storage**: per-field observations in Postgres (`field_observations`), **idempotent** on
+  `(field_id, scene_date)` — a scene never produces duplicate rows (the reliability property the
+  event-driven Phase 4 depends on).
+- **Worker** ([`run.py`](pipelines/ingest/run.py)): backfills a field's history. The same unit runs
+  on Fargate/Batch in the cloud, triggered by new-scene SNS events (Phase 4) instead of the CLI.
+- **Serving + UI**: `GET /fields/{id}/observations` returns the time series; the web app shows a
+  season-long **NDVI chart** (mean line + p10–p90 band) when you click a field, and a
+  **Load satellite health** button that triggers ingestion for new fields.
+- **Tested**: index + cloud-mask math has unit tests (no network); verified end-to-end — a Texas
+  field backfilled 64 cloud-free 2024 scenes, NDVI tracking the full crop cycle (0.17 → 0.48 → down).
+
+**What's deferred to the cloud (Phase 2 deploy / Phase 4):** Step Functions orchestration, Fargate
+workers at scale, rendered map tiles to S3, and SNS/SQS event-driven ingestion. The processing
+logic is identical — only the trigger and compute substrate change.
+
+```bash
+# Backfill a field locally (uses the geospatial venv):
+.venv/bin/python -m pipelines.ingest.run --field-id <uuid> --start 2024-04-01 --end 2024-10-31
+```
 
 ## The de-risk notebook
 

@@ -31,6 +31,17 @@ export interface Field {
   created_at: string;
 }
 
+export interface Observation {
+  scene_date: string;
+  ndvi_mean: number;
+  ndvi_p10: number;
+  ndvi_p90: number;
+  evi_mean: number | null;
+  ndwi_mean: number | null;
+  clear_fraction: number;
+  cloud_pct: number | null;
+}
+
 export interface CropReason {
   factor: string;
   direction: "favors" | "limits";
@@ -98,4 +109,7 @@ export const api = {
     request<Field>("/fields", { method: "POST", body: JSON.stringify({ name, geometry }) }),
   deleteField: (id: string) => request<void>(`/fields/${id}`, { method: "DELETE" }),
   recommend: (id: string) => request<Recommendation>(`/fields/${id}/recommend`),
+  observations: (id: string) => request<Observation[]>(`/fields/${id}/observations`),
+  ingest: (id: string) =>
+    request<{ status: string }>(`/fields/${id}/ingest`, { method: "POST" }),
 };

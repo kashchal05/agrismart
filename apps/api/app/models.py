@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
-from sqlalchemy import DateTime, Float, ForeignKey, String
+from sqlalchemy import Date, DateTime, Float, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -51,3 +51,30 @@ class Field(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     owner: Mapped["User"] = relationship(back_populates="fields")
+    observations: Mapped[list["FieldObservation"]] = relationship(
+        back_populates="field", cascade="all, delete-orphan"
+    )
+
+
+class FieldObservation(Base):
+    """One Sentinel-2 satellite observation of a field (per cloud-free solar day)."""
+
+    __tablename__ = "field_observations"
+    __table_args__ = (UniqueConstraint("field_id", "scene_date", name="uq_field_scene"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=_uuid)
+    field_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("fields.id", ondelete="CASCADE"), index=True, nullable=False
+    )
+    scene_date: Mapped[date] = mapped_column(Date, nullable=False)
+    satellite: Mapped[str] = mapped_column(String(32), default="sentinel-2")
+    ndvi_mean: Mapped[float] = mapped_column(Float, nullable=False)
+    ndvi_p10: Mapped[float] = mapped_column(Float, nullable=False)
+    ndvi_p90: Mapped[float] = mapped_column(Float, nullable=False)
+    evi_mean: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ndwi_mean: Mapped[float | None] = mapped_column(Float, nullable=True)
+    clear_fraction: Mapped[float] = mapped_column(Float, nullable=False)
+    cloud_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+    field: Mapped["Field"] = relationship(back_populates="observations")

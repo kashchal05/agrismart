@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, EmailStr, Field as PydField, field_validator
@@ -59,3 +59,16 @@ class FieldOut(BaseModel):
     county_fips: str | None
     state: str | None
     created_at: datetime
+
+
+class ObservationOut(BaseModel):
+    scene_date: date
+    ndvi_mean: float
+    ndvi_p10: float
+    ndvi_p90: float
+    evi_mean: float | None
+    ndwi_mean: float | None
+    clear_fraction: float
+    cloud_pct: float | None
+
+    model_config = {"from_attributes": True}

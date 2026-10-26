@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
-import type { CropRec, Field } from "./api";
+import type { CropRec, Field, Observation } from "./api";
 import { api, getToken, setToken } from "./api";
 import { Auth } from "./Auth";
+import { NdviChart } from "./NdviChart";
 
 const TEXAS_CENTER: [number, number] = [-99.5, 31.3];
 
@@ -61,6 +62,11 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
   const [vertexCount, setVertexCount] = useState(0);
   // field_id -> "loading" | error string | crop recommendations
   const [recs, setRecs] = useState<Record<string, "loading" | { error: string } | CropRec[]>>({});
+  // satellite health panel
+  const [selected, setSelected] = useState<Field | null>(null);
+  const [obs, setObs] = useState<Observation[] | null>(null);
+  const [ingesting, setIngesting] = useState(false);
+  const pollRef = useRef<number | null>(null);
 
   // Drawing state lives in refs so the map click handler never sees stale values.
   const drawingRef = useRef(false);
@@ -163,9 +169,49 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
     }
   }
 
-  function flyTo(f: Field) {
-    mapRef.current?.flyTo({ center: [f.centroid_lon, f.centroid_lat], zoom: 13 });
+  function stopPolling() {
+    if (pollRef.current) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
   }
+
+  async function selectField(f: Field) {
+    mapRef.current?.flyTo({ center: [f.centroid_lon, f.centroid_lat], zoom: 13 });
+    stopPolling();
+    setIngesting(false);
+    setSelected(f);
+    setObs(null);
+    try {
+      setObs(await api.observations(f.id));
+    } catch {
+      setObs([]);
+    }
+  }
+
+  async function startIngest(f: Field) {
+    setIngesting(true);
+    try {
+      await api.ingest(f.id);
+    } catch {
+      setIngesting(false);
+      return;
+    }
+    // Poll until the worker has written observations (satellite reads take ~1-2 min).
+    stopPolling();
+    let tries = 0;
+    pollRef.current = window.setInterval(async () => {
+      tries += 1;
+      const data = await api.observations(f.id).catch(() => [] as Observation[]);
+      if (data.length > 0 || tries > 40) {
+        setObs(data);
+        setIngesting(false);
+        stopPolling();
+      }
+    }, 5000);
+  }
+
+  useEffect(() => stopPolling, []);
 
   async function remove(f: Field, e: React.MouseEvent) {
     e.stopPropagation();
@@ -205,7 +251,8 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
           ) : (
             <ul className="field-list">
               {fields.map((f) => (
-                <li key={f.id} className="field-item" onClick={() => flyTo(f)}>
+                <li key={f.id} className={"field-item" + (selected?.id === f.id ? " active" : "")}
+                  onClick={() => selectField(f)}>
                   <a className="del" onClick={(e) => remove(f, e)}>delete</a>
                   <h3>{f.name}</h3>
                   <div className="meta">
@@ -225,6 +272,35 @@ function Dashboard({ onLogout }: { onLogout: () => void }) {
         </aside>
         <div className="map-wrap">
           <div id="map" ref={mapContainer} />
+          {selected && (
+            <div className="sat-panel">
+              <div className="sat-head">
+                <span>🛰️ {selected.name} — satellite health (NDVI)</span>
+                <a onClick={() => { stopPolling(); setSelected(null); }}>✕</a>
+              </div>
+              {obs === null ? (
+                <div className="sat-msg">Loading…</div>
+              ) : obs.length > 0 ? (
+                <>
+                  <NdviChart obs={obs} />
+                  <div className="sat-foot">
+                    {obs.length} cloud-free Sentinel-2 scenes · {obs[0].scene_date} to{" "}
+                    {obs[obs.length - 1].scene_date}
+                  </div>
+                </>
+              ) : ingesting ? (
+                <div className="sat-msg">
+                  Processing Sentinel-2 imagery for this field… (~1–2 min)<br />
+                  <span className="sat-sub">Reading satellite passes, masking clouds, computing NDVI.</span>
+                </div>
+              ) : (
+                <div className="sat-msg">
+                  No satellite history yet.
+                  <button onClick={() => startIngest(selected)}>Load satellite health</button>
+                </div>
+              )}
+            </div>
+          )}
           <div className="draw-bar">
             {!drawing ? (
               <button onClick={startDraw}>✏️ Draw field</button>

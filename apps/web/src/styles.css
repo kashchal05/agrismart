@@ -60,6 +60,28 @@ body {
 .rec-fill { height: 100%; background: var(--green); border-radius: 3px; }
 .rec-why { color: var(--muted); font-size: 11px; }
 
+.field-item.active { border-color: var(--green); box-shadow: 0 0 0 1px var(--green); }
+
+.sat-panel {
+  position: absolute; left: 12px; right: 12px; bottom: 12px; z-index: 6;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.12); padding: 12px 14px;
+}
+.sat-head { display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.sat-head a { cursor: pointer; color: var(--muted); font-weight: 400; }
+.sat-foot { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.sat-msg { padding: 18px; text-align: center; color: var(--muted); font-size: 13px; }
+.sat-msg button { margin-top: 10px; }
+.sat-sub { font-size: 11px; }
+
+.ndvi-chart { width: 100%; height: auto; display: block; }
+.ndvi-chart .grid { stroke: #ececec; stroke-width: 1; }
+.ndvi-chart .ytick, .ndvi-chart .xtick { fill: #999; font-size: 10px; }
+.ndvi-chart .ndvi-band { fill: var(--green); opacity: 0.15; }
+.ndvi-chart .ndvi-line { fill: none; stroke: var(--green); stroke-width: 1.8; }
+.ndvi-chart .ndvi-dot { fill: var(--green-dark); }
+
 .map-wrap { flex: 1; position: relative; }
 #map { position: absolute; inset: 0; }
 
